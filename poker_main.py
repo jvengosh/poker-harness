@@ -77,6 +77,11 @@ def blinds(big, little, blind):
     little.round_bet = math.floor(blind / 2)
     return math.floor(1.5 * blind)
 
+# hand_rank: returns the strength of the poker hand
+# parameters:
+#       hand: the hand to be evaluated
+# returns: a tuple with the strength of the hand and the hand sorted
+
 def hand_rank(hand):
     ranks = ['Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King']
     suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs']
@@ -166,6 +171,11 @@ def hand_rank(hand):
     # High Card: No matching ranks or suits
     sorted_hand = sorted(hand, key=lambda x: (ranks.index(x[0]), suits.index(x[1])), reverse=True)
     return (1, sorted_hand)
+
+# preflop_hand_rank: returns the strength of the hole cards
+# parameters:
+#       handL the hand to be evaluated
+# returns: a tuple with the strength of the hand and the hand sorted
 
 def preflop_hand_rank(hand):
     ranks = ['Ace', 'King', 'Queen', 'Jack', '10', '9', '8', '7', '6', '5', '4', '3', '2']
