@@ -3,14 +3,41 @@ import math
 import random
 from itertools import combinations
 
+
+class Strategy:
+    def decide_action(self, player, community_cards, min_bet):
+        raise NotImplementedError("Please Implement this method")
+
+
+class DefaultStrategy(Strategy):
+    def decide_action(self, player, community_cards, min_bet):
+        cards = player.cards
+        if len(community_cards) != 0:
+            cards += community_cards
+            all_hands = list(combinations(cards, 5))
+            best_hand = max(all_hands, key=hand_rank)
+        else:
+            best_hand = preflop_hand_rank(cards)
+
+        # For now, just print the best hand. In a real game, you might decide based on the hand rank.
+        print(best_hand)
+
+        # Placeholder logic to decide action. This should be replaced with more sophisticated logic.
+        if best_hand[0] > 5:
+            return "raise"
+        else:
+            return "call"
+
+
 class Player():
-    def __init__(self, n):
+    def __init__(self, n, strategy=None):
         self.name = n
         self.chips = 2000
         self.action = ""
         self.fold = False
         self.round_bet = 0
         self.cards = []
+        self.strategy = strategy if strategy else DefaultStrategy()
 
     def reset(self):
         self.action = ""
@@ -29,6 +56,7 @@ class Player():
         print(best_hand)
         return
 
+
 class Pot():
     def __init__(self):
         self.chips = 0
@@ -37,6 +65,7 @@ class Pot():
     def reset(self):
         self.chips = 0
         self.cards = []
+
 
 class Deck:
     def __init__(self):
@@ -67,15 +96,19 @@ class Deck:
 #       little: player who is responsible for little blind
 #       blind: size of big blind
 # returns: total added to the pot
-#
-# TODO: Handle all-in on blind
 
 def blinds(big, little, blind):
-    big.chips -= blind
-    big.round_bet = blind
-    little.chips -= math.floor(blind / 2)
-    little.round_bet = math.floor(blind / 2)
-    return math.floor(1.5 * blind)
+    big_blind = min(big.chips, blind)
+    little_blind = min(little.chips, math.floor(blind / 2))
+
+    big.chips -= big_blind
+    big.round_bet = big_blind
+
+    little.chips -= little_blind
+    little.round_bet = little_blind
+
+    return big_blind + little_blind
+
 
 # hand_rank: returns the strength of the poker hand
 # parameters:
@@ -172,6 +205,7 @@ def hand_rank(hand):
     sorted_hand = sorted(hand, key=lambda x: (ranks.index(x[0]), suits.index(x[1])), reverse=True)
     return (1, sorted_hand)
 
+
 # preflop_hand_rank: returns the strength of the hole cards
 # parameters:
 #       handL the hand to be evaluated
@@ -202,6 +236,7 @@ def preflop_hand_rank(hand):
     sorted_hand = sorted(hand, key=lambda x: (ranks.index(x[0]), suits.index(x[1])), reverse=True)
     return (0, sorted_hand)
 
+
 # preflop: handles the logic for the preflop
 # parameters:
 #       players: list of players active in the round
@@ -209,8 +244,8 @@ def preflop_hand_rank(hand):
 
 def preflop(players, dealer, deck, pot):
     # Blinds
-    little = players[(dealer + 1) % len(players)]   # little is left of dealer
-    big = players[(dealer + 2) % len(players)]      # big is left of little
+    little = players[(dealer + 1) % len(players)]  # little is left of dealer
+    big = players[(dealer + 2) % len(players)]  # big is left of little
 
     pot.chips += blinds(big, little, blind)
     # print(pot.chips)
@@ -226,13 +261,55 @@ def preflop(players, dealer, deck, pot):
             p.cards.append(deck.draw())
 
     # Betting Loop
-    # TODO: implement betting interactions
+    min_bet = blind
+    raise_count = 0
+    last_raiser = None
+
+    while True:
+        all_called = True
+        for player in players:
+            if player.fold or player == last_raiser:
+                continue
+            player_action = player.choose_action(pot.cards)
+            if player_action == "fold":
+                player.fold = True
+            elif player_action == "call":
+                call_amount = min(player.chips, min_bet - player.round_bet)
+                pot.chips += call_amount
+                player.chips -= call_amount
+                player.round_bet += call_amount
+            elif player_action == "raise" and raise_count < 3:
+                raise_amount = min_bet * 2  # Can adjust this logic as needed
+                pot.chips += raise_amount
+                player.chips -= raise_amount
+                player.round_bet += raise_amount
+                min_bet = player.round_bet
+                raise_count += 1
+                all_called = False
+                last_raiser = player
+            elif player_action == "all-in":
+                all_in_amount = player.chips
+                pot.chips += all_in_amount
+                player.round_bet += all_in_amount
+                player.chips = 0
+                if player.round_bet > min_bet:
+                    min_bet = player.round_bet
+                    raise_count += 1
+                    all_called = False
+                    last_raiser = player
+            else:
+                print("Invalid Action")
+                return
+
+        if all_called:
+            break
+
     min_bet = blind
     raise_count = 0
 
-    while(True):
+    while (True):
         for player in players:
-            player.choose_action(pot.cards) # remove (used for limited testing)
+            player.choose_action(pot.cards)  # remove (used for limited testing)
             if (player.fold == False):
                 if (player.action == "fold"):
                     print("fold")
@@ -257,6 +334,7 @@ def preflop(players, dealer, deck, pot):
 
     return players
 
+
 def main():
     player_0 = Player("Alpha")
     player_1 = Player("Bravo")
@@ -279,5 +357,6 @@ def main():
     print(player_0.cards, player_0.chips)
 
     return
+
 
 main()
