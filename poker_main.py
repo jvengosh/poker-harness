@@ -187,7 +187,6 @@ def preflop(players, dealer, deck, pot, blind):
     big = players[(dealer + 2) % len(players)]
 
     pot.chips += blinds(big, little, blind)
-    #print("Dealer: ", players[dealer].name + ", Little: ", little.name + ", Big: ", big.name)
     players = players[(dealer + 1):] + players[:(dealer + 1)]
     #print(players[0].name)
 
@@ -240,11 +239,6 @@ def preflop(players, dealer, deck, pot, blind):
         if all_called_or_folded:
             break
 
-    #for p in players:
-        #print(f"{p.name} has cards: {p.cards}")
-
-    #print(f"End of preflop betting round. Pot size: {pot.chips}")
-
     return players
 
 
@@ -261,13 +255,15 @@ def betting_round(players, pot, deck, min_bet, round_name):
     # Initialize betting variables
     raise_count = 0
     last_raiser = None
-    action_taken = False
 
     # Betting loop
     while True:
-        action_taken = False
+        old_pot = pot.chips
         for player in players:
-            if player.fold or player == last_raiser:
+            if player == last_raiser:
+                break
+
+            if player.fold:
                 continue
 
             player_action = player.choose_action(pot.cards, min_bet)
@@ -291,8 +287,12 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 min_bet = player.round_bet
                 raise_count += 1
                 last_raiser = player
-                action_taken = True
                 #print(f"{player.name} raises to {raise_amount} chips.")
+            elif player_action == "raise" and raise_count == 3:
+                call_amount = min(player.chips, min_bet - player.round_bet)
+                pot.chips += call_amount
+                player.chips -= call_amount
+                player.round_bet += call_amount
             elif player_action == "all-in":
                 all_in_amount = player.chips
                 pot.chips += all_in_amount
@@ -302,15 +302,15 @@ def betting_round(players, pot, deck, min_bet, round_name):
                     min_bet = player.round_bet
                     raise_count += 1
                 last_raiser = player
-                action_taken = True
                 #print(f"{player.name} goes all-in with {all_in_amount} chips.")
             else:
-                #print("Invalid Action")
+                print("Invalid Action!")
                 return
 
         # End the betting round if everyone has acted and there is no new raise
-        if not action_taken:
+        if old_pot == pot.chips:
             break
+        print('\n')
 
     # Reset the round bets for the next betting round
     for player in players:
