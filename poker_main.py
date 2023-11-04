@@ -261,7 +261,9 @@ def betting_round(players, pot, deck, min_bet, round_name):
         old_pot = pot.chips
         for player in players:
             if player == last_raiser:
-                break
+                for player in players:
+                    player.round_bet = 0
+                return
 
             if player.fold:
                 continue
@@ -310,7 +312,6 @@ def betting_round(players, pot, deck, min_bet, round_name):
         # End the betting round if everyone has acted and there is no new raise
         if old_pot == pot.chips:
             break
-        print('\n')
 
     # Reset the round bets for the next betting round
     for player in players:
@@ -319,8 +320,6 @@ def betting_round(players, pot, deck, min_bet, round_name):
 
 def showdown(players, pot):
     best_hands = []
-
-    tied = []
 
     for player in players:
         if not player.fold:
