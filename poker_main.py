@@ -4,6 +4,12 @@ import random
 from itertools import combinations
 from collections import OrderedDict
 
+# TODO: we need to handle multiple rounds
+# TODO: we need to handle all-in edge cases (like all of them)
+
+RANKS = '2 3 4 5 6 7 8 9 10 J Q K A'.split()
+SUITS = 'Hearts Diamonds Clubs Spades'.split()
+
 class Strategy:
     def decide_action(self, player, community_cards, min_bet):
         raise NotImplementedError("Please Implement this method")
@@ -28,6 +34,7 @@ class DefaultStrategy(Strategy):
         else:
             raise TypeError(f"The first item of best_hand should be an int, but got {type(best_hand[0])}.")
 
+
 class Player:
     def __init__(self, n, strategy=None):
         self.name = n
@@ -49,6 +56,11 @@ class Player:
         self.action = action
         return action
 
+    def reset_for_new_hand(self):
+        self.action = ""
+        self.fold = False
+        self.round_bet = 0
+        self.cards = []
 
 class Pot:
     def __init__(self):
@@ -89,8 +101,8 @@ def blinds(big, little, blind):
     big.round_bet = big_blind
     little.chips -= little_blind
     little.round_bet = little_blind
-   #  print(f"Big blind posted by {big.name}: {big_blind} chips.")
-   # print(f"Little blind posted by {little.name}: {little_blind} chips.")
+    #  print(f"Big blind posted by {big.name}: {big_blind} chips.")
+    # print(f"Little blind posted by {little.name}: {little_blind} chips.")
     return big_blind + little_blind
 
 
@@ -142,7 +154,8 @@ def hand_rank(hand):
     for rank, count in rank_count.items():
         if count == 3:
             trips_cards = [card for card in hand if card[0] == rank]
-            kicker_cards = sorted((card for card in hand if card[0] != rank), key=lambda x: ranks.index(x[0]), reverse=True)[:2]
+            kicker_cards = sorted((card for card in hand if card[0] != rank), key=lambda x: ranks.index(x[0]),
+                                  reverse=True)[:2]
             return (4, trips_cards + kicker_cards)
 
     pairs = [rank for rank, count in rank_count.items() if count == 2]
@@ -155,7 +168,8 @@ def hand_rank(hand):
 
     if len(pairs) == 1:
         pair_cards = [card for card in hand if card[0] == pairs[0]]
-        kicker_cards = sorted((card for card in hand if card[0] != pairs[0]), key=lambda x: ranks.index(x[0]), reverse=True)[:3]
+        kicker_cards = sorted((card for card in hand if card[0] != pairs[0]), key=lambda x: ranks.index(x[0]),
+                              reverse=True)[:3]
         return (2, pair_cards + kicker_cards)
 
     sorted_hand = sorted(hand, key=lambda x: (ranks.index(x[0]), suits.index(x[1])), reverse=True)[:5]
@@ -188,7 +202,7 @@ def preflop(players, dealer, deck, pot, blind):
 
     pot.chips += blinds(big, little, blind)
     players = players[(dealer + 1):] + players[:(dealer + 1)]
-    #print(players[0].name)
+    # print(players[0].name)
 
     for i in range(2):
         for p in players:
@@ -247,10 +261,10 @@ def betting_round(players, pot, deck, min_bet, round_name):
     if round_name == "flop":
         for _ in range(3):  # Deal 3 cards for the flop
             pot.cards.append(deck.draw())
-        #print(f"Flop cards: {pot.cards}")
+        # print(f"Flop cards: {pot.cards}")
     elif round_name in ["turn", "river"]:  # Deal 1 card for the turn and the river
         pot.cards.append(deck.draw())
-        #print(f"{round_name.capitalize()} card: {pot.cards[-1]}")
+        # print(f"{round_name.capitalize()} card: {pot.cards[-1]}")
 
     # Initialize betting variables
     raise_count = 0
@@ -279,7 +293,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 pot.chips += call_amount
                 player.chips -= call_amount
                 player.round_bet += call_amount
-                #print(f"{player.name} calls {call_amount} chips.")
+                # print(f"{player.name} calls {call_amount} chips.")
             elif player_action == "raise" and raise_count < 3:
                 raise_amount = min(player.chips, min_bet * 2 - player.round_bet)
                 print("Player " + player.name + " raised " + str(raise_amount) + "!")
@@ -289,7 +303,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 min_bet = player.round_bet
                 raise_count += 1
                 last_raiser = player
-                #print(f"{player.name} raises to {raise_amount} chips.")
+                # print(f"{player.name} raises to {raise_amount} chips.")
             elif player_action == "raise" and raise_count == 3:
                 call_amount = min(player.chips, min_bet - player.round_bet)
                 pot.chips += call_amount
@@ -304,7 +318,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
                     min_bet = player.round_bet
                     raise_count += 1
                 last_raiser = player
-                #print(f"{player.name} goes all-in with {all_in_amount} chips.")
+                # print(f"{player.name} goes all-in with {all_in_amount} chips.")
             else:
                 print("Invalid Action!")
                 return
@@ -354,7 +368,7 @@ def showdown(players, pot):
                     val = int(card[0])
                 temp.append(val)
             player_dict[player[0]] = temp
-        
+
         # print(player_dict)
 
         for key, value in player_dict.items():
@@ -392,12 +406,38 @@ def main():
     player_3 = Player("Delta")
     players = [player_0, player_1, player_2, player_3]
 
-    pot = Pot()
-    deck = Deck()
-    deck.shuffle()
+    num_hands = 10  # For example, to play 10 hands
+    current_hand = 1
+    blind = 20  # Starting blind, could increase as hands go by
 
-    blind = 20
-    dealer = math.floor(random.random() * 4)
+    while current_hand <= num_hands and not game_over(players):
+        print(f"Hand {current_hand} begins.")
+        pot = Pot()
+        deck = Deck()
+        deck.shuffle()
+
+        # Assign dealer position that rotates each hand
+        dealer = (current_hand - 1) % len(players)  # This will rotate the dealer position
+
+        play_hand(players, dealer, deck, pot, blind)
+
+        current_hand += 1
+        # Optional: Increase blinds at intervals or based on conditions
+        # Optional: Check and remove any players out of chips from the player list
+
+    # End game summary
+    print("\nGame over. Final chip counts:")
+    for player in players:
+        print(f"{player.name}: {player.chips} chips")
+
+
+def game_over(players):
+    """Returns True if the game is over (i.e., only one player left with all chips)."""
+    return sum(player.chips > 0 for player in players) <= 1
+
+
+def play_hand(players, dealer, deck, pot, blind):
+    """Plays out a single hand of poker."""
     print("\nPreflop")
     preflop(players, dealer, deck, pot, blind)
     print("\nFlop")
@@ -408,9 +448,9 @@ def main():
     betting_round(players, pot, deck, blind, "river")
     showdown(players, pot)
 
-    print(f"\n\nGame over. Final chip counts:")
-    for p in players:
-        print(f"{p.name}: {p.chips} chips")
-    print(f"Total chips in pot: {pot.chips}")
+    # Reset player states for the next hand
+    for player in players:
+        player.reset_for_new_hand()  # Ensure this method resets only hand-specific states, not chip counts
+
 
 main()
