@@ -4,7 +4,6 @@ import random
 from itertools import combinations
 from collections import OrderedDict
 
-# TODO: we need to handle multiple rounds
 # TODO: we need to handle all-in edge cases (like all of them)
 
 RANKS = '2 3 4 5 6 7 8 9 10 J Q K A'.split()
