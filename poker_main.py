@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 # TODO: we need to handle all-in edge cases (like all of them)
 
-RANKS = ['Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King']
+RANKS = '2 3 4 5 6 7 8 9 10 J Q K A'.split()
 SUITS = 'Hearts Diamonds Clubs Spades'.split()
 
 class Strategy:
@@ -331,76 +331,6 @@ def betting_round(players, pot, deck, min_bet, round_name):
         player.round_bet = 0
 
 
-def compare_hands(hand1, hand2):
-    """
-    Compare two poker hands and determine which is better.
-    Assumes that hand1 and hand2 are tuples with a rank and the list of cards, like (rank, [cards])
-    Returns:
-    -1 if hand1 is better, 1 if hand2 is better, 0 if they are equivalent.
-    """
-    rank1, cards1 = hand1
-    rank2, cards2 = hand2
-
-    # Compare hand ranks first
-    if rank1 > rank2:
-        return -1
-    elif rank1 < rank2:
-        return 1
-
-    # If ranks are the same, we must compare the cards within the rank
-    # For the highest card down to the lowest card in the combination
-    cards1_sorted = sorted(cards1, key=lambda card: RANKS.index(card[0]), reverse=True)
-    cards2_sorted = sorted(cards2, key=lambda card: RANKS.index(card[0]), reverse=True)
-
-    for card1, card2 in zip(cards1_sorted, cards2_sorted):
-        if RANKS.index(card1[0]) > RANKS.index(card2[0]):
-            return -1
-        elif RANKS.index(card1[0]) < RANKS.index(card2[0]):
-            return 1
-
-    # If we get here, the hands are equal in rank and card values, so it's a tie lol
-    return 0
-
-
-def showdown(players, pot):
-    """
-    Conducts a showdown between players, comparing their hands and assigning the pot to the winner(s).
-    """
-    # First, find the best hand of each player
-    best_hands = [(player, hand_rank(player.cards + pot.cards)) for player in players if not player.fold]
-    # Sort the hands by rank
-    best_hands.sort(key=lambda x: x[1][0], reverse=True)
-
-    # Find the highest rank to identify possible ties
-    highest_rank = best_hands[0][1][0]
-    potential_winners = [hand for hand in best_hands if hand[1][0] == highest_rank]
-
-    # Compare hands among tied players
-    if len(potential_winners) > 1:
-        # Sort by the hand's individual card ranks if they have the same hand rank
-        potential_winners.sort(key=lambda x: [RANKS.index(card[0]) for card in
-                                              sorted(x[1][1], key=lambda card: RANKS.index(card[0]), reverse=True)])
-
-        # After sorting, the first element is the winner if distinct, else there's a tie
-        winners = [potential_winners[0]]
-        for hand in potential_winners[1:]:
-            if compare_hands(winners[0][1], hand[1]) == 0:
-                winners.append(hand)
-            else:
-                break  # No more ties possible after sorting
-    else:
-        winners = potential_winners  # Only one winner
-
-    # Divide pot among winners
-    split_pot_amount = pot.chips // len(winners)
-    for winner in winners:
-        winner[0].chips += split_pot_amount
-        # In case of an uneven split, you might need to handle leftover chips
-
-    pot.reset()  # Reset pot for next hand
-    return winners  # Return the winner(s) for possible external use
-
-'''
 def showdown(players, pot):
     best_hands = []
 
@@ -419,6 +349,7 @@ def showdown(players, pot):
 
     if len(best_hands) == 1:
         best_hands[0][0].chips += pot.chips
+        print("\n" + best_hands[0][0].name + " won " + str(pot.chips) + " chips!")
     else:
         player_dict = {}
         for player in best_hands:
@@ -448,7 +379,9 @@ def showdown(players, pot):
                     count_dict[item] += 1  # If the item is already in the dictionary, increment its count
                 else:
                     count_dict[item] = 1  # If the item is not in the dictionary, initialize its count to 1
-            player_dict[key] = OrderedDict(sorted(count_dict.items()))
+            player_dict[key] = OrderedDict(sorted(count_dict.items(), key=lambda x: (x[1], x[0]), reverse = True))
+
+            print(player_dict[key])
 
         # print(player_dict)
 
@@ -462,11 +395,16 @@ def showdown(players, pot):
             elif value == maximum:
                 equal.append(key)
 
+        print("\n")
+
         for player in equal:
             player.chips += int(pot.chips / len(equal))
+            print(player.name + " won " + str(int(pot.chips / len(equal))) + " chips!")
+
+        print("\n")
 
     pot.reset()
-'''
+
 
 def main():
     player_0 = Player("Alpha")
@@ -475,7 +413,7 @@ def main():
     player_3 = Player("Delta")
     players = [player_0, player_1, player_2, player_3]
 
-    num_hands = 10  # For example, to play 10 hands
+    num_hands = 1  # For example, to play 10 hands
     current_hand = 1
     blind = 20  # Starting blind, could increase as hands go by
 
@@ -520,6 +458,7 @@ def play_hand(players, dealer, deck, pot, blind):
     # Reset player states for the next hand
     for player in players:
         player.reset_for_new_hand()  # Ensure this method resets only hand-specific states, not chip counts
+        print(f"{player.name}: {player.chips} chips")
 
 
 main()
