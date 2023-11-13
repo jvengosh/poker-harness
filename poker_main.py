@@ -55,12 +55,6 @@ class Player:
         self.action = action
         return action
 
-    def reset_for_new_hand(self):
-        self.action = ""
-        self.fold = False
-        self.round_bet = 0
-        self.cards = []
-
 class Pot:
     def __init__(self):
         self.chips = 0
@@ -457,7 +451,7 @@ def play_hand(players, dealer, deck, pot, blind):
 
     # Reset player states for the next hand
     for player in players:
-        player.reset_for_new_hand()  # Ensure this method resets only hand-specific states, not chip counts
+        player.reset()  # Ensure this method resets only hand-specific states, not chip counts
         print(f"{player.name}: {player.chips} chips")
 
 
