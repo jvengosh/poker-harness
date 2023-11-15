@@ -26,8 +26,10 @@ class DefaultStrategy(Strategy):
             best_hand = preflop_hand_rank(cards)
         print(f"{player.name}'s best hand: {best_hand}")
         if isinstance(best_hand[0], int):
-            if best_hand[0] > 5:
+            if best_hand[0] > 6:
                 return "raise"
+            elif best_hand[0] ==5:
+                return "all-in"
             else:
                 return "call"
         else:
@@ -39,6 +41,8 @@ class Player:
         self.name = n
         self.chips = 2000
         self.all_in = False 
+        self.potCount = 0 
+        self.winner = ""
         self.action = ""
         self.fold = False
         self.round_bet = 0
@@ -63,8 +67,10 @@ class Pot:
         self.chips = 0
         self.cards = []
         self.potDict = {} 
+        self.potnum = 0
     def reset(self):
         self.chips = 0
+        self.potnum = 0
         self.cards = []
         self.potDict = {}
 
@@ -271,8 +277,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
  
     createsidepot = False 
 
-    playerPot = {} 
-    potnum = 0
+    
     
     # Betting loop
     while True:
@@ -316,11 +321,13 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 player.chips -= call_amount
                 player.round_bet += call_amount
             elif player_action == "all-in":
+                print(player.name + " has gone all in")
                 all_in_amount = player.chips
                 pot.chips += all_in_amount
                 player.round_bet += all_in_amount
                 player.chips = 0
                 player.all_in = True 
+                pot.potnum += 1
                 createsidepot = True 
                 if player.round_bet > min_bet:
                     min_bet = player.round_bet
@@ -335,25 +342,47 @@ def betting_round(players, pot, deck, min_bet, round_name):
         if old_pot == pot.chips:
             if createsidepot == True: 
                 temp = pot.chips 
-                pot.potDict[potnum] = temp 
+                pot.potDict[pot.potnum] = temp
                 pot.chips = 0 
-                potnum += 1
+                pot.potnum += 1
             break
 
     # Reset the round bets for the next betting round
     for player in players:
         player.round_bet = 0
 
+def wildWest(players, pot): 
+    pot.potnum-=1
+    print("this is the potnum ->" + str(pot.potnum))
+    sidepot = Pot()
+    sidepot.chips = pot.potDict[pot.potnum]
+    showdown(players,sidepot)
+    for player in players: 
+        if player.win != "":
+            return player.win 
+    
+    
 
 def showdown(players, pot):
     best_hands = []
     first = [] 
+    second = []
+    
     for player in players: 
         if player.side: 
             first.append(player)
+            player.side = False 
+        else: 
+            second.append(player)
+    chipAmount = pot.chips
+    if len(first) != 0: 
+        winner = wildWest(players,pot)
+        second = second.append(winner)
+        chipAmount += pot.potDict[pot.potnum]
+    print("this is the potnum ->" + str(pot.potnum))
 
-    
-    for player in players:
+
+    for player in second:
         if not player.fold:
             all_hands = list(combinations(player.cards + pot.cards, 5))
             best_hand = max(all_hands, key=hand_rank)
@@ -417,9 +446,10 @@ def showdown(players, pot):
         print("\n")
 
         for player in equal:
-            player.chips += int(pot.chips / len(equal))
-            print(player.name + " won " + str(int(pot.chips / len(equal))) + " chips!")
-
+            
+            player.chips += int(chipAmount / len(equal))
+            print(player.name + " won " + str(int(chipAmount / len(equal))) + " chips!")
+            player.win = player.name
         print("\n")
 
     pot.reset()
