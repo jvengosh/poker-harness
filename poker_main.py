@@ -38,15 +38,18 @@ class Player:
     def __init__(self, n, strategy=None):
         self.name = n
         self.chips = 2000
+        self.all_in = False 
         self.action = ""
         self.fold = False
         self.round_bet = 0
         self.cards = []
+        self.side = False 
         self.strategy = strategy if strategy else DefaultStrategy()
 
     def reset(self):
         self.action = ""
         self.fold = False
+        self.all_in = False 
         self.round_bet = 0
         self.cards = []
 
@@ -59,11 +62,11 @@ class Pot:
     def __init__(self):
         self.chips = 0
         self.cards = []
-
+        self.potDict = {} 
     def reset(self):
         self.chips = 0
         self.cards = []
-
+        self.potDict = {}
 
 class Deck:
     def __init__(self):
@@ -204,8 +207,9 @@ def preflop(players, dealer, deck, pot, blind):
     min_bet = blind
     raise_count = 0
     last_raiser = None
-
+ 
     while True:
+
         all_called_or_folded = True
         for player in players:
             if player.fold or player == last_raiser:
@@ -263,6 +267,13 @@ def betting_round(players, pot, deck, min_bet, round_name):
     raise_count = 0
     last_raiser = None
 
+
+ 
+    createsidepot = False 
+
+    playerPot = {} 
+    potnum = 0
+    
     # Betting loop
     while True:
         old_pot = pot.chips
@@ -271,10 +282,12 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 for player in players:
                     player.round_bet = 0
                 return
-
-            if player.fold:
+            
+            if player.fold or player.all_in:
+            
                 continue
-
+            if createsidepot: 
+                player.side = True 
             player_action = player.choose_action(pot.cards, min_bet)
             if player_action == "fold":
                 player.fold = True
@@ -307,6 +320,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 pot.chips += all_in_amount
                 player.round_bet += all_in_amount
                 player.chips = 0
+                player.all_in = True 
+                createsidepot = True 
                 if player.round_bet > min_bet:
                     min_bet = player.round_bet
                     raise_count += 1
@@ -318,6 +333,11 @@ def betting_round(players, pot, deck, min_bet, round_name):
 
         # End the betting round if everyone has acted and there is no new raise
         if old_pot == pot.chips:
+            if createsidepot == True: 
+                temp = pot.chips 
+                pot.potDict[potnum] = temp 
+                pot.chips = 0 
+                potnum += 1
             break
 
     # Reset the round bets for the next betting round
@@ -327,7 +347,12 @@ def betting_round(players, pot, deck, min_bet, round_name):
 
 def showdown(players, pot):
     best_hands = []
+    first = [] 
+    for player in players: 
+        if player.side: 
+            first.append(player)
 
+    
     for player in players:
         if not player.fold:
             all_hands = list(combinations(player.cards + pot.cards, 5))
@@ -456,3 +481,21 @@ def play_hand(players, dealer, deck, pot, blind):
 
 
 main()
+
+
+
+
+
+#sidepot logic: 
+#if player bets all in:
+#   can no longer bet more (skip turn)
+#   disable this pot from being added to 
+#if another player wants to bet:
+#   create sidepot 
+#   all new bets get added to this and flag players 
+
+
+#within showdown 
+#if sidepot, flagged players showdown first 
+#hand out money to winner 
+#showdown between 
