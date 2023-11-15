@@ -26,10 +26,8 @@ class DefaultStrategy(Strategy):
             best_hand = preflop_hand_rank(cards)
         print(f"{player.name}'s best hand: {best_hand}")
         if isinstance(best_hand[0], int):
-            if best_hand[0] > 6:
+            if best_hand[0] > 5:
                 return "raise"
-            elif best_hand[0] ==5:
-                return "all-in"
             else:
                 return "call"
         else:
