@@ -334,35 +334,56 @@ def betting_round(players, pot, deck, min_bet, round_name):
     for player in players:
         player.round_bet = 0
         
+
 def handle_side_pots(all_players, active_players, main_pot):
+    # Sort active players based on their round bets in descending order
     active_players.sort(key=lambda x: x.round_bet, reverse=True)
 
+    # Initialize an empty list to store side pots
     side_pots = []
+
+    # Initialize the current pot with the main pot
     current_pot = main_pot
 
+    # Iterate through the active players
     for i in range(len(active_players)):
         player = active_players[i]
+
+        # Check if the player's round bet is less than the chips in the current pot
         if player.round_bet < current_pot.chips:
+            # Create a new side pot and set its chips based on the player's round bet and the number of remaining players
             side_pot = Pot()
             side_pot.chips = player.round_bet * (len(active_players) - i)
+            
+            # Update the chips in the current pot by subtracting the chips in the side pot
             current_pot.chips -= side_pot.chips
+
+            # Add the side pot to the list of side pots
             side_pots.append(side_pot)
         else:
+            # If the player's round bet is greater than or equal to the chips in the current pot, break out of the loop
             break
+
+    # Move the cards from the current pot to the main pot and reset the current pot
     main_pot.cards.extend(current_pot.cards)
     main_pot.reset()
 
+    # Distribute the cards from the current pot to each side pot
     for side_pot in side_pots:
         side_pot.cards.extend(current_pot.cards.copy())
+
+    # Print information about the side pots
     print("\nSide Pots:")
     for i, side_pot in enumerate(side_pots):
         print(f"Side Pot {i + 1}: {side_pot.chips} chips - Cards: {side_pot.cards}")
 
-
+    # Reset the round bets for all players
     for player in all_players:
         player.round_bet = 0
 
+    # Return the chips in the last side pot (if any) or the chips in the main pot
     return side_pots[-1].chips if side_pots else main_pot.chips
+
 
 
 def showdown(players, pot):
