@@ -193,12 +193,14 @@ def preflop_hand_rank(hand):
 
 
 def preflop(players, dealer, deck, pot, blind):
+    # Remove players who can't afford the blind
+    players = [player for player in players if player.chips >= blind // 2]
+
     little = players[(dealer + 1) % len(players)]
     big = players[(dealer + 2) % len(players)]
 
     pot.chips += blinds(big, little, blind)
     players = players[(dealer + 1):] + players[:(dealer + 1)]
-    # print(players[0].name)
 
     for i in range(2):
         for p in players:
@@ -211,7 +213,7 @@ def preflop(players, dealer, deck, pot, blind):
     while True:
         all_called_or_folded = True
         for player in players:
-            if player.fold or player == last_raiser:
+            if player.fold or player == last_raiser or player.chips == 0:
                 continue
             player_action = player.choose_action(pot.cards, min_bet)
             if player_action == "fold":
@@ -223,6 +225,8 @@ def preflop(players, dealer, deck, pot, blind):
                 pot.chips += call_amount
                 player.chips -= call_amount
                 player.round_bet += call_amount
+                if player.chips == 0:
+                    handle_side_pots(players, [player for player in players if not player.fold], pot)
             elif player_action == "raise" and raise_count < 3:
                 raise_amount = min(player.chips, min_bet * 2 - player.round_bet)
                 pot.chips += raise_amount
@@ -232,6 +236,8 @@ def preflop(players, dealer, deck, pot, blind):
                 raise_count += 1
                 all_called_or_folded = False
                 last_raiser = player
+                if player.chips == 0:
+                    handle_side_pots(players, [player for player in players if not player.fold], pot)
             elif player_action == "all-in":
                 all_in_amount = player.chips
                 pot.chips += all_in_amount
@@ -242,6 +248,7 @@ def preflop(players, dealer, deck, pot, blind):
                     raise_count += 1
                     all_called_or_folded = False
                     last_raiser = player
+                handle_side_pots(players, [player for player in players if not player.fold], pot)
             else:
                 print("Invalid Action")
                 return
@@ -269,7 +276,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
     # Betting loop
     while True:
         old_pot = pot.chips
-        active_players = [player for player in players if not player.fold]
+        active_players = [player for player in players if not player.fold and player.chips > 0]
 
         for player in active_players:
             if player == last_raiser:
@@ -278,14 +285,10 @@ def betting_round(players, pot, deck, min_bet, round_name):
                     player.round_bet = 0
                 return
 
-
-            if player.fold:
-                continue
-
             player_action = player.choose_action(pot.cards, min_bet)
             if player_action == "fold":
                 player.fold = True
-                print("Player " + player.name + " folded!")
+                print(f"Player {player.name} folded!")
                 if all(p.fold for p in players if p != player):
                     return  # End the round if everyone else has folded
             elif player_action == "call":
@@ -293,7 +296,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 pot.chips += call_amount
                 player.chips -= call_amount
                 player.round_bet += call_amount
-                # print(f"{player.name} calls {call_amount} chips.")
+                if player.chips == 0:
+                    handle_side_pots(players, active_players, pot)
             elif player_action == "raise" and raise_count < 3:
                 proposed_raise_amount = min_bet * 2 - player.round_bet
                 if player.chips < proposed_raise_amount:
@@ -306,8 +310,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
                         raise_count += 1
                     last_raiser = player
                     print(f"{player.name} goes all-in with {all_in_amount} chips.")
+                    handle_side_pots(players, active_players, pot)
                 else:
-                    # Normal raise
                     raise_amount = proposed_raise_amount
                     pot.chips += raise_amount
                     player.chips -= raise_amount
@@ -330,9 +334,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
                     min_bet = player.round_bet
                     raise_count += 1
                 last_raiser = player
-                # print(f"{player.name} goes all-in with {all_in_amount} chips.")
-            
-                handle_side_pots(players,active_players,pot)
+                print(f"{player.name} goes all-in with {all_in_amount} chips.")
+                handle_side_pots(players, active_players, pot)
             else:
                 print("Invalid Action!")
                 return
