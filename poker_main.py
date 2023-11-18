@@ -4,8 +4,6 @@ import random
 from itertools import combinations
 from collections import OrderedDict
 
-# TODO: we need to handle all-in edge cases (like all of them)
-
 RANKS = '2 3 4 5 6 7 8 9 10 J Q K A'.split()
 SUITS = 'Hearts Diamonds Clubs Spades'.split()
 
@@ -226,7 +224,7 @@ def preflop(players, dealer, deck, pot, blind):
                 player.chips -= call_amount
                 player.round_bet += call_amount
             elif player_action == "raise" and raise_count < 3:
-                raise_amount = min_bet * 2
+                raise_amount = min(player.chips, min_bet * 2 - player.round_bet)
                 pot.chips += raise_amount
                 player.chips -= raise_amount
                 player.round_bet += raise_amount
@@ -275,6 +273,7 @@ def betting_round(players, pot, deck, min_bet, round_name):
 
         for player in active_players:
             if player == last_raiser:
+                # Reset round bets and return if the cycle of betting is complete
                 for player in active_players:
                     player.round_bet = 0
                 return
@@ -296,15 +295,27 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 player.round_bet += call_amount
                 # print(f"{player.name} calls {call_amount} chips.")
             elif player_action == "raise" and raise_count < 3:
-                raise_amount = min(player.chips, min_bet * 2 - player.round_bet)
-                print("Player " + player.name + " raised " + str(raise_amount) + "!")
-                pot.chips += raise_amount
-                player.chips -= raise_amount
-                player.round_bet += raise_amount
-                min_bet = player.round_bet
-                raise_count += 1
-                last_raiser = player
-                # print(f"{player.name} raises to {raise_amount} chips.")
+                proposed_raise_amount = min_bet * 2 - player.round_bet
+                if player.chips < proposed_raise_amount:
+                    all_in_amount = player.chips
+                    pot.chips += all_in_amount
+                    player.round_bet += all_in_amount
+                    player.chips = 0
+                    if player.round_bet > min_bet:
+                        min_bet = player.round_bet
+                        raise_count += 1
+                    last_raiser = player
+                    print(f"{player.name} goes all-in with {all_in_amount} chips.")
+                else:
+                    # Normal raise
+                    raise_amount = proposed_raise_amount
+                    pot.chips += raise_amount
+                    player.chips -= raise_amount
+                    player.round_bet += raise_amount
+                    min_bet = player.round_bet
+                    raise_count += 1
+                    last_raiser = player
+                    print(f"{player.name} raises to {raise_amount} chips.")
             elif player_action == "raise" and raise_count == 3:
                 call_amount = min(player.chips, min_bet - player.round_bet)
                 pot.chips += call_amount
