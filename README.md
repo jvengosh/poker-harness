@@ -1,6 +1,6 @@
 # SCAI Poker Jam
 
-Welcome to Poker Jam! This competition is designed to simulate a simplified version of a poker game, allowing you to run multiple rounds of poker with our harness and other players and determine the winner based on their chip counts.
+Welcome to Poker Jam! This competition is designed to simulate a simplified version of a poker game, allowing you to come up with unique strategies, build your own custom algorithms, and play poker against other strategies!
 
 ## Getting Started
 
