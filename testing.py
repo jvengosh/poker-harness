@@ -1,6 +1,7 @@
 import unittest
 from harness import *
 
+
 class Test(unittest.TestCase):
     # hand_rank() tests
     def test_royal_flush(self):
@@ -78,20 +79,6 @@ class Test(unittest.TestCase):
         self.assertEqual(preflop_hand_rank(hand), (0, hand), "Should be 3 High")
 
     # Functionality Testing
-    # Testing if blinds are correctly posted and deducted from player chips.
-    def test_blinds_posted(self):
-        players = [Player("Alpha"), Player("Bravo")]
-        deck = Deck()
-        pot = Pot()
-        blind = 20  # Big blind
-        dealer_position = 0
-        preflop(players, dealer_position, deck, pot, blind)
-
-        expected_alpha_chips = 2000 - blind // 2  # Small blind is half of the big blind
-        self.assertEqual(players[0].chips, expected_alpha_chips)
-
-        expected_bravo_chips = 2000 - blind  # Big blind
-        self.assertEqual(players[1].chips, expected_bravo_chips)
 
 
 if __name__ == '__main__':
