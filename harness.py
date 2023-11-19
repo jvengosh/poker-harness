@@ -25,10 +25,10 @@ class SidePot:
 class Pot:
     """Represents the main pot in a poker game."""
 
-    def __init__(self):
+    def __init__(self, cards = []):
         """Initialize a Pot object."""
         self.chips = 0
-        self.cards = []
+        self.cards = [] if cards == [] else cards
 
     def reset(self):
         """Reset the pot to its initial state."""
@@ -246,7 +246,8 @@ def preflop(players, dealer, deck, pot, blind):
             if player_action == "fold":
                 player.fold = True
                 if all(p.fold for p in players if p != player):
-                    break
+                    print("all fold")
+                    return 1
             elif player_action == "call":
                 call_amount = min(player.chips, min_bet - player.round_bet)
                 pot.chips += call_amount
@@ -317,6 +318,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
         old_pot = pot.chips
         active_players = [player for player in players if not player.fold and player.chips > 0]
 
+        print(len(active_players))
+
         for player in active_players:
             if player == last_raiser:
                 # Reset round bets and return if the cycle of betting is complete
@@ -329,7 +332,8 @@ def betting_round(players, pot, deck, min_bet, round_name):
                 player.fold = True
                 print(f"Player {player.name} folded!")
                 if all(p.fold for p in players if p != player):
-                    return  # End the round if everyone else has folded
+                    print("all fold")
+                    return 1  # End the round if everyone else has folded
             elif player_action == "call":
                 call_amount = min(player.chips, min_bet - player.round_bet)
                 pot.chips += call_amount
@@ -416,7 +420,7 @@ def handle_side_pots(all_players, active_players, main_pot):
         # Check if the player's round bet is less than the chips in the current pot
         if player.round_bet < current_pot.chips:
             # Create a new side pot and set its chips based on the player's round bet and the number of remaining players
-            side_pot = Pot()
+            side_pot = Pot(cards = main_pot.cards)
             side_pot.chips = player.round_bet * (len(active_players) - i)
 
             # Update the chips in the current pot by subtracting the chips in the side pot
@@ -428,13 +432,13 @@ def handle_side_pots(all_players, active_players, main_pot):
             # If the player's round bet is greater than or equal to the chips in the current pot, break out of the loop
             break
 
-    # Move the cards from the current pot to the main pot and reset the current pot
-    main_pot.cards.extend(current_pot.cards)
-    main_pot.reset()
+    # # Move the cards from the current pot to the main pot and reset the current pot
+    # main_pot.cards.extend(current_pot.cards)
+    # main_pot.reset()
 
-    # Distribute the cards from the current pot to each side pot
-    for side_pot in side_pots:
-        side_pot.cards.extend(current_pot.cards.copy())
+    # # Distribute the cards from the current pot to each side pot
+    # for side_pot in side_pots:
+    #     side_pot.cards.extend(current_pot.cards.copy())
 
     # Print information about the side pots
     print("\nSide Pots:")
@@ -462,6 +466,8 @@ def showdown(players, pot):
     """
     best_hands = []
 
+    print(players[0].cards)
+
     for player in players:
         if not player.fold:
             all_hands = list(combinations(player.cards + pot.cards, 5))
@@ -473,7 +479,7 @@ def showdown(players, pot):
     best_hands = sorted(best_hands, key=lambda x: x[1][0], reverse=True)
     best_hands = [item for item in best_hands if item[1][0] >= best_hands[0][1][0]]
 
-    # print(best_hands)
+    print(best_hands)
 
     if len(best_hands) == 1:
         best_hands[0][0].chips += pot.chips
@@ -497,7 +503,7 @@ def showdown(players, pot):
                 temp.append(val)
             player_dict[player[0]] = temp
 
-        # print(player_dict)
+        print(player_dict)
 
         for key, value in player_dict.items():
             count_dict = {}  # Initialize an empty dictionary
@@ -511,7 +517,7 @@ def showdown(players, pot):
 
             # print(player_dict[key])
 
-        # print(player_dict)
+        print(player_dict)
 
         maximum = list(list(player_dict.values())[0])
         equal = []
